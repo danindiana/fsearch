@@ -1,0 +1,2 @@
+# scribd_downloader.py only — Fsearchv2.py uses stdlib exclusively
+playwright>=1.60.0
