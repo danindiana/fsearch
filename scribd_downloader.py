@@ -1,10 +1,9 @@
 # scribd_downloader.py
-import os
 import re
 import asyncio
 import argparse
 from pathlib import Path
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 from playwright.async_api import async_playwright
 
@@ -52,7 +51,7 @@ async def download_scribd_pdf(url: str, output_path: str = None, headless: bool 
         page = await context.new_page()
 
         # Navigate to the embed URL
-        print(f"Navigating to document...")
+        print("Navigating to document...")
         try:
             await page.goto(embed_url, wait_until="networkidle")
         except Exception as e:

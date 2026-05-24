@@ -12,7 +12,6 @@ Usage:
 import os
 import sys
 import re
-import struct
 import zlib
 import threading
 from pathlib import Path
@@ -99,7 +98,7 @@ def check_file(path: Path) -> str | None:
 
     # 1. filename match
     if NAME_RE.search(name):
-        return f"FILENAME MATCH"
+        return "FILENAME MATCH"
 
     # 2. content match (only for known readable types, size-limited)
     ext = path.suffix.lower()
@@ -185,7 +184,7 @@ def main():
         sys.exit(1)
 
     print(f"\n{'='*60}")
-    print(f"  Adams Phase Essay Finder")
+    print("  Adams Phase Essay Finder")
     print(f"  Started: {datetime.now().strftime('%H:%M:%S')}")
     print(f"  Searching: {', '.join(str(r) for r in roots)}")
     print(f"  Workers: {MAX_WORKERS}")
@@ -214,7 +213,7 @@ def main():
                 if reason:
                     hits.append((path, reason))
                     print(f"  ✓ [{reason}] {path}")
-            except Exception as e:
+            except Exception:
                 pass
             if checked % 5000 == 0:
                 print(f"  ... {checked:,}/{len(file_queue):,} checked, "

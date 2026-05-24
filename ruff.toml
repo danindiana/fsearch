@@ -1,0 +1,5 @@
+[lint]
+# E401 — compact multi-import lines are an intentional style in this codebase
+# E741 — short loop vars (l for line) are clear in context
+# E722 — bare excepts in scribd_downloader.py guard optional Playwright UI elements
+ignore = ["E401", "E741", "E722"]

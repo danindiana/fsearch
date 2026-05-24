@@ -15,7 +15,7 @@ CLI mode (skip prompts):
 """
 
 import os, sys, re, zlib, zipfile, io, signal, threading, queue, time, argparse
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
@@ -325,7 +325,7 @@ def prompt(label: str, hint: str = '', default: str = '') -> str:
 def prompt_config() -> SearchConfig:
     width = 62
     print(f'\n{"─"*width}')
-    print(f'  fsearch  —  Fast Multi-Disk File Search')
+    print('  fsearch  —  Fast Multi-Disk File Search')
     print(f'{"─"*width}')
 
     # ── terms ─────────────────────────────────────────────────────────────────
