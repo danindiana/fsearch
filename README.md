@@ -2,6 +2,11 @@
 
 [![Lint](https://github.com/danindiana/fsearch/actions/workflows/lint.yml/badge.svg)](https://github.com/danindiana/fsearch/actions/workflows/lint.yml)
 ![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+![Last commit](https://img.shields.io/github/last-commit/danindiana/fsearch)
+![Repo size](https://img.shields.io/github/repo-size/danindiana/fsearch)
+![Dependencies](https://img.shields.io/badge/dependencies-stdlib%20only-brightgreen)
 
 `Fsearchv2.py` is a production-grade, general-purpose recursive file search tool written in pure Python (stdlib only). It searches filenames **and** file contents in parallel across multiple physical disks, reporting hits immediately as they are found.
 
