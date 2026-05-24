@@ -554,4 +554,13 @@ sizes) is secondary and empirical.
 
 - Python 3.9+
 - Standard library only (no pip installs for `Fsearchv2.py`)
-- `playwright` required for `scribd_downloader.py` only: `pip install playwright && playwright install chromium`
+
+### `scribd_downloader.py` — Playwright setup
+
+```bash
+pip install playwright
+playwright install chromium
+```
+
+`playwright install chromium` downloads the Chromium browser binary (~170 MB) used for
+headless PDF generation. Only needed if you intend to use `scribd_downloader.py`.
