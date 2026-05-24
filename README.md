@@ -1,6 +1,7 @@
 # fsearch — Fast Multi-Disk File Search
 
 [![Lint](https://github.com/danindiana/fsearch/actions/workflows/lint.yml/badge.svg)](https://github.com/danindiana/fsearch/actions/workflows/lint.yml)
+![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-blue)
 
 `Fsearchv2.py` is a production-grade, general-purpose recursive file search tool written in pure Python (stdlib only). It searches filenames **and** file contents in parallel across multiple physical disks, reporting hits immediately as they are found.
 
