@@ -1,0 +1,61 @@
+digraph Pipeline {
+    graph [
+        label="fsearch — Walker-to-Scanner Pipeline (per DiskScanner)"
+        labelloc=t
+        fontname="Helvetica"
+        fontsize=15
+        bgcolor="#f8f9fa"
+        pad=0.6
+        splines=polyline
+        rankdir=LR
+    ]
+    node [fontname="Helvetica" fontsize=11 style=filled shape=box]
+    edge [fontname="Helvetica" fontsize=10 color="#444444"]
+
+    /* Walker phase */
+    bfs     [label="BFS Walk\nos.scandir()\n(deque-based)" fillcolor="#55a868" fontcolor=white]
+    entry   [label="DirEntry\n(file path)" fillcolor="#b4d8b4" shape=oval]
+
+    /* Backpressure */
+    sema    [label="Semaphore\nacquire()\n(blocks at 24 in-flight)" fillcolor="#e07b39" fontcolor=white shape=diamond]
+
+    /* Thread pool */
+    pool    [label="ThreadPoolExecutor\nWORKERS_PER_DISK = 6" fillcolor="#8172b2" fontcolor=white]
+    submit  [label="pool.submit(\n  check_file, path)" fillcolor="#9b87c6" fontcolor=white]
+
+    /* Callback */
+    cb      [label="add_done_callback\n(_on_done)" fillcolor="#937860" fontcolor=white]
+    sema_r  [label="Semaphore\nrelease()\n(unblocks walker)" fillcolor="#e07b39" fontcolor=white shape=diamond]
+    stats   [label="stats['checked'] += 1\nstats_lock protected" fillcolor="#aac4d8"]
+
+    /* Output */
+    hit     [label="result\nnot None?" fillcolor="#dd8452" fontcolor=white shape=diamond]
+    out_q   [label="out_q.put(result)" fillcolor="#64b5cd" shape=cylinder]
+    discard [label="discard" fillcolor="#cccccc" shape=plaintext]
+
+    /* Main thread */
+    main    [label="Main Thread\nout_q.get(timeout=0.3)\n+ progress line\n+ Ctrl-C check" fillcolor="#4c72b0" fontcolor=white]
+    print   [label="print hit\nand progress" fillcolor="#5c85d6" fontcolor=white shape=note]
+
+    /* Shutdown */
+    drain   [label="Final drain\nafter all threads join" fillcolor="#c44e52" fontcolor=white]
+
+    /* Edges */
+    bfs     -> entry   [label="yields"]
+    entry   -> sema    [label="one per file"]
+    sema    -> submit  [label="acquired"]
+    submit  -> pool
+    pool    -> cb      [label="future done"]
+    cb      -> sema_r
+    cb      -> stats
+    cb      -> hit
+    hit     -> out_q   [label="yes"]
+    hit     -> discard [label="no"]
+    out_q   -> main    [label="blocking get"]
+    main    -> print
+    main    -> drain   [label="threads finished"]
+    drain   -> print   [label="remaining hits"]
+
+    { rank=same; sema; sema_r }
+    { rank=same; hit; discard }
+}

@@ -1,0 +1,66 @@
+digraph CheckGates {
+    graph [
+        label="fsearch — 6-Gate File Filter (check_file)"
+        labelloc=t
+        fontname="Helvetica"
+        fontsize=15
+        bgcolor="#f8f9fa"
+        pad=0.6
+        splines=ortho
+        rankdir=TB
+        nodesep=0.5
+    ]
+    node [fontname="Helvetica" fontsize=11 style=filled shape=box]
+    edge [fontname="Helvetica" fontsize=10]
+
+    /* Input */
+    file    [label="file path\n(Path object)" fillcolor="#64b5cd" shape=oval]
+
+    /* Gate 1 */
+    g1      [label="Gate 1\nFilename regex\nname_re.search(path.name)\nZero I/O" fillcolor="#55a868" fontcolor=white shape=diamond]
+    g1y     [label="MATCH\nreason: 'filename'" fillcolor="#2ecc71" fontcolor=white shape=doubleoctagon]
+
+    /* Gate 2 */
+    g2      [label="Gate 2\nExtension filter\next in READABLE_EXT\nZero I/O" fillcolor="#55a868" fontcolor=white shape=diamond]
+
+    /* Gate 3 */
+    g3      [label="Gate 3\nSize filter\npath.stat().st_size\nOne stat() syscall" fillcolor="#e07b39" fontcolor=white shape=diamond]
+
+    /* Gate 4 */
+    g4      [label="Gate 4\nmmap raw scan\ncontent_re.search(mm)\nZero-copy, early exit" fillcolor="#dd8452" fontcolor=white shape=diamond]
+    g4y     [label="MATCH\nreason: 'content'" fillcolor="#2ecc71" fontcolor=white shape=doubleoctagon]
+
+    /* Gate 5 */
+    g5      [label="Gate 5\nPDF zlib decode\nextract_pdf_streams()\nOnly for .pdf files" fillcolor="#c44e52" fontcolor=white shape=diamond]
+    g5y     [label="MATCH\nreason: 'content(pdf)'" fillcolor="#2ecc71" fontcolor=white shape=doubleoctagon]
+
+    /* Gate 6 */
+    g6      [label="Gate 6\nDOCX XML unzip\nextract_docx_xml()\nOnly for .docx/.odt" fillcolor="#8172b2" fontcolor=white shape=diamond]
+    g6y     [label="MATCH\nreason: 'content(docx)'" fillcolor="#2ecc71" fontcolor=white shape=doubleoctagon]
+
+    /* Skip */
+    skip2   [label="skip\n(wrong extension)" fillcolor="#aaaaaa" fontcolor=white shape=plaintext]
+    skip3   [label="skip\n(too large / empty)" fillcolor="#aaaaaa" fontcolor=white shape=plaintext]
+    skip45  [label="skip\n(no match)" fillcolor="#aaaaaa" fontcolor=white shape=plaintext]
+
+    /* Edges */
+    file -> g1
+    g1   -> g1y   [label="match" color="#27ae60" fontcolor="#27ae60"]
+    g1   -> g2    [label="no match" color="#444444"]
+    g2   -> skip2 [label="not readable" color="#999999"]
+    g2   -> g3    [label="readable ext" color="#444444"]
+    g3   -> skip3 [label="0 B or >50 MB" color="#999999"]
+    g3   -> g4    [label="ok size" color="#444444"]
+    g4   -> g4y   [label="match" color="#27ae60" fontcolor="#27ae60"]
+    g4   -> g5    [label="no match, is .pdf" color="#444444"]
+    g4   -> g6    [label="no match, is .docx/.odt" color="#444444"]
+    g4   -> skip45 [label="no match, other" color="#999999"]
+    g5   -> g5y   [label="match" color="#27ae60" fontcolor="#27ae60"]
+    g5   -> skip45 [label="no match" color="#999999"]
+    g6   -> g6y   [label="match" color="#27ae60" fontcolor="#27ae60"]
+    g6   -> skip45 [label="no match" color="#999999"]
+
+    /* Cost annotation */
+    cost [label="← Increasing cost →\nnanoseconds … milliseconds"
+          shape=plaintext fontsize=10 fontcolor="#666666"]
+}

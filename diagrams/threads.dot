@@ -1,0 +1,98 @@
+digraph ThreadModel {
+    graph [
+        label="fsearch — Per-Disk Thread Model"
+        labelloc=t
+        fontname="Helvetica"
+        fontsize=15
+        bgcolor="#f8f9fa"
+        pad=0.6
+        splines=ortho
+        rankdir=TB
+        compound=true
+    ]
+    node [fontname="Helvetica" fontsize=11 style=filled shape=box]
+    edge [fontname="Helvetica" fontsize=10 color="#444444"]
+
+    /* Shared global state */
+    stop    [label="_stop\nthreading.Event\n(SIGINT handler sets this)" fillcolor="#e04040" fontcolor=white shape=diamond]
+    out_q   [label="out_q\nqueue.Queue\n(shared result channel)" fillcolor="#64b5cd" shape=cylinder]
+    stats   [label="stats dict\n{'submitted': N, 'checked': N}\nstats_lock (Lock)" fillcolor="#aac4d8" shape=note]
+
+    /* Main thread */
+    subgraph cluster_main {
+        label="Main Thread"
+        style=filled
+        fillcolor="#e8f0fb"
+        fontname="Helvetica"
+        main_loop [label="Event loop\n0.3s timeout drain\nProgress line\nCtrl-C detect" fillcolor="#4c72b0" fontcolor=white]
+        joiner    [label="t.join(timeout=3s)\nfor each walker thread" fillcolor="#5c85d6" fontcolor=white]
+        drain     [label="Final drain\nremaining hits" fillcolor="#5c85d6" fontcolor=white]
+    }
+
+    /* Disk 0 */
+    subgraph cluster_disk0 {
+        label="Physical Device 0x00000xyz (e.g. NVMe /home)"
+        style=filled
+        fillcolor="#f0eaf8"
+        fontname="Helvetica"
+
+        walker0 [label="Walker Thread\n'walker-0'\nBFS deque\nos.scandir()" fillcolor="#55a868" fontcolor=white]
+        sema0   [label="Semaphore(24)\nWORKERS×BACKPRESSURE\nbackpressure cap" fillcolor="#e07b39" fontcolor=white shape=diamond]
+        pool0   [label="ThreadPoolExecutor\nWORKERS_PER_DISK=6\nthread prefix: scan-0xyz" fillcolor="#8172b2" fontcolor=white]
+        cf0a    [label="check_file()" fillcolor="#937860" fontcolor=white]
+        cf0b    [label="check_file()" fillcolor="#937860" fontcolor=white]
+        cf0c    [label="check_file() …" fillcolor="#9e8c75" fontcolor=white style=dashed]
+    }
+
+    /* Disk 1 */
+    subgraph cluster_disk1 {
+        label="Physical Device 0x00000abc (e.g. SATA SSD /mnt/data)"
+        style=filled
+        fillcolor="#eaf8f0"
+        fontname="Helvetica"
+
+        walker1 [label="Walker Thread\n'walker-1'\nBFS deque\nos.scandir()" fillcolor="#55a868" fontcolor=white]
+        sema1   [label="Semaphore(24)" fillcolor="#e07b39" fontcolor=white shape=diamond]
+        pool1   [label="ThreadPoolExecutor\nWORKERS_PER_DISK=6\nthread prefix: scan-0abc" fillcolor="#8172b2" fontcolor=white]
+        cf1a    [label="check_file()" fillcolor="#937860" fontcolor=white]
+        cf1b    [label="check_file() …" fillcolor="#9e8c75" fontcolor=white style=dashed]
+    }
+
+    /* Within disk 0 */
+    walker0 -> sema0   [label="acquire\nper file"]
+    sema0   -> pool0   [label="submit"]
+    pool0   -> cf0a
+    pool0   -> cf0b
+    pool0   -> cf0c    [style=dashed]
+    cf0a    -> sema0   [label="release\n(callback)" style=dashed color="#e07b39"]
+    cf0b    -> sema0   [style=dashed color="#e07b39"]
+
+    /* Within disk 1 */
+    walker1 -> sema1   [label="acquire\nper file"]
+    sema1   -> pool1   [label="submit"]
+    pool1   -> cf1a
+    pool1   -> cf1b    [style=dashed]
+    cf1a    -> sema1   [label="release\n(callback)" style=dashed color="#e07b39"]
+
+    /* Cross-cluster: results */
+    cf0a    -> out_q   [label="hit" color="#27ae60"]
+    cf0b    -> out_q   [color="#27ae60"]
+    cf1a    -> out_q   [label="hit" color="#27ae60"]
+    out_q   -> main_loop
+
+    /* Stats */
+    cf0a    -> stats   [label="checked++" color="#888888" style=dotted]
+    walker0 -> stats   [label="submitted++" color="#888888" style=dotted]
+
+    /* Main thread internals */
+    main_loop -> joiner  [label="threads done"]
+    joiner    -> drain
+    drain     -> out_q   [label="get_nowait()" style=dashed]
+
+    /* Stop signal */
+    stop -> walker0  [label="is_set()" color="#e04040" style=dashed]
+    stop -> walker1  [color="#e04040" style=dashed]
+    stop -> pool0    [label="cancel_futures" color="#e04040" style=dashed]
+    stop -> pool1    [color="#e04040" style=dashed]
+    stop -> cf0a     [label="early exit" color="#e04040" style=dashed]
+}

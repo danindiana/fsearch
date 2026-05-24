@@ -1,0 +1,72 @@
+digraph Architecture {
+    graph [
+        label="fsearch — System Architecture"
+        labelloc=t
+        fontname="Helvetica"
+        fontsize=16
+        bgcolor="#f8f9fa"
+        pad=0.5
+        splines=ortho
+        rankdir=TB
+    ]
+    node [fontname="Helvetica" fontsize=11 style=filled shape=box]
+    edge [fontname="Helvetica" fontsize=10 color="#444444"]
+
+    /* Entry points */
+    main        [label="main()" fillcolor="#4c72b0" fontcolor=white shape=ellipse]
+    parse_cli   [label="parse_cli()\nCLI mode" fillcolor="#5c85d6" fontcolor=white]
+    prompt_cfg  [label="prompt_config()\nInteractive mode" fillcolor="#5c85d6" fontcolor=white]
+
+    /* Config */
+    build_cfg   [label="build_config()\ncompiles name_re\nand content_re" fillcolor="#dd8452" fontcolor=white]
+    cfg         [label="SearchConfig\n(terms, regexes,\nextensions, roots)" fillcolor="#ffb347" shape=parallelogram]
+
+    /* Root detection */
+    def_roots   [label="default_roots()\nhome + /proc/mounts\n+ real_mounts()" fillcolor="#55a868" fontcolor=white]
+    grp_dev     [label="group_by_device()\nos.stat().st_dev\nper root" fillcolor="#55a868" fontcolor=white]
+
+    /* Run */
+    run_search  [label="run_search()" fillcolor="#c44e52" fontcolor=white]
+
+    /* Per-disk scanners */
+    subgraph cluster_scanners {
+        label="One DiskScanner per physical device"
+        style=dashed
+        color="#888888"
+        fontname="Helvetica"
+        fontsize=12
+
+        disk0 [label="DiskScanner\n(dev 0x00000xyz)\nBFS walker\n+ ThreadPool(6)" fillcolor="#8172b2" fontcolor=white]
+        disk1 [label="DiskScanner\n(dev 0x00000abc)\nBFS walker\n+ ThreadPool(6)" fillcolor="#8172b2" fontcolor=white]
+        diskN [label="DiskScanner\n(dev …)\n…" fillcolor="#9e8ec0" fontcolor=white style="dashed,filled"]
+    }
+
+    /* File checker */
+    check_file  [label="check_file()\n6-gate filter\n(filename→ext→size\n→mmap→pdf→docx)" fillcolor="#937860" fontcolor=white]
+
+    /* Results */
+    out_q       [label="out_q\n(Queue)" fillcolor="#64b5cd" shape=cylinder]
+    results     [label="Results\nprinted live\n+ final summary" fillcolor="#4c72b0" fontcolor=white shape=note]
+    stop        [label="_stop\n(threading.Event)\nShared stop flag" fillcolor="#e04040" fontcolor=white shape=diamond]
+
+    /* Edges */
+    main        -> parse_cli   [label="sys.argv > 1"]
+    main        -> prompt_cfg  [label="interactive"]
+    parse_cli   -> build_cfg
+    prompt_cfg  -> def_roots
+    def_roots   -> build_cfg
+    build_cfg   -> cfg
+    cfg         -> run_search
+    run_search  -> grp_dev
+    grp_dev     -> disk0
+    grp_dev     -> disk1
+    grp_dev     -> diskN
+    disk0       -> check_file  [label="submit()"]
+    disk1       -> check_file  [label="submit()"]
+    diskN       -> check_file  [label="submit()" style=dashed]
+    check_file  -> out_q       [label="hit → put()"]
+    out_q       -> results     [label="main thread drain"]
+    stop        -> disk0       [label="is_set()" color="#e04040" style=dashed]
+    stop        -> disk1       [color="#e04040" style=dashed]
+    stop        -> check_file  [color="#e04040" style=dashed]
+}
